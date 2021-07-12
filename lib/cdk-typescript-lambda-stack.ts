@@ -1,13 +1,14 @@
 import { Runtime, Tracing } from '@aws-cdk/aws-lambda';
 import { NodejsFunction } from '@aws-cdk/aws-lambda-nodejs';
-import { HttpApi, HttpMethod } from '@aws-cdk/aws-apigatewayv2';
+import { HttpApi } from '@aws-cdk/aws-apigatewayv2';
 import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
-import { Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
+import { CfnOutput , Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
 
 export class CdkTypescriptLambdaStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    // Create TypeScript Lambda
     const lambda = new NodejsFunction(this, "CdkTypescriptLambda", {
       runtime: Runtime.NODEJS_14_X,
       memorySize: 256,
@@ -17,15 +18,19 @@ export class CdkTypescriptLambdaStack extends Stack {
       bundling: {
         minify: true
       },
-      tracing: Tracing.ACTIVE,
+      tracing: Tracing.ACTIVE
     });
 
-    // Create API Gateway
+    // Create HTTP API Gateway
     const apigw = new HttpApi(this, 'CdkTypescriptApi', {
       createDefaultStage: true,
       defaultIntegration: new LambdaProxyIntegration({
         handler: lambda
       })
     });
-  }
-}
+
+    // Print API Gateway URL
+    new CfnOutput(this, 'API URL', { value: apigw.url ?? 'deployment error' });
+
+  };
+};
