@@ -16,19 +16,20 @@ export async function Handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     // Get timestamp and client IP
     const timest = Math.floor(Date.now() / 1000);
     const client_ip = event.requestContext.http.sourceIp;
-    const api_path = event.rawPath;
-
+    const api_path = event.requestContext.http.path;
+    
     // Build DynamoDB parameters
     const params = {
         TableName: TABLE_NAME,
         Item: {
             timest: timest.toString(),
             client_ip: client_ip,
-            api_path: api_path
+            api_path: api_path,
+            full_event: event
         }
     };
 
-    // Put record to DynamoDB
+    // Insert item to DynamoDB
     ddb_client.put(params).promise()
         .then((data: { Attributes: any; }) => console.log(data.Attributes))
         .catch(console.error);
