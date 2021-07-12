@@ -2,11 +2,19 @@ import { Runtime, Tracing } from '@aws-cdk/aws-lambda';
 import { NodejsFunction } from '@aws-cdk/aws-lambda-nodejs';
 import { HttpApi } from '@aws-cdk/aws-apigatewayv2';
 import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
-import { CfnOutput , Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
+import { CfnOutput, Construct, Duration, RemovalPolicy, Stack, StackProps } from '@aws-cdk/core';
+import { AttributeType, BillingMode, Table } from '@aws-cdk/aws-dynamodb';
 
 export class CdkTypescriptLambdaStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+
+    // Create DynamoDB table
+    const ddbtable = new Table(this, 'CdkTypescriptTable', {
+      partitionKey: { name: 'timest', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
 
     // Create TypeScript Lambda
     const lambda = new NodejsFunction(this, "CdkTypescriptLambda", {
@@ -18,7 +26,11 @@ export class CdkTypescriptLambdaStack extends Stack {
       bundling: {
         minify: true
       },
-      tracing: Tracing.ACTIVE
+      tracing: Tracing.ACTIVE,
+      awsSdkConnectionReuse: true,
+      environment: {
+       'TABLE_NAME': ddbtable.tableName 
+      }
     });
 
     // Create HTTP API Gateway
@@ -28,6 +40,9 @@ export class CdkTypescriptLambdaStack extends Stack {
         handler: lambda
       })
     });
+
+    // Grant Lambda read/write permissions to DynamoDB table
+    ddbtable.grantReadWriteData(lambda);
 
     // Print API Gateway URL
     new CfnOutput(this, 'API URL', { value: apigw.url ?? 'deployment error' });
