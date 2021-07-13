@@ -1,7 +1,7 @@
 import { Runtime, Tracing } from '@aws-cdk/aws-lambda';
 import { NodejsFunction } from '@aws-cdk/aws-lambda-nodejs';
 import { HttpApi } from '@aws-cdk/aws-apigatewayv2';
-import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
+import { LambdaProxyIntegration } from '@aws-cdk/aws-apigatewayv2-integrations';
 import { CfnOutput, Construct, Duration, RemovalPolicy, Stack, StackProps } from '@aws-cdk/core';
 import { AttributeType, BillingMode, Table } from '@aws-cdk/aws-dynamodb';
 
@@ -24,7 +24,8 @@ export class CdkTypescriptLambdaStack extends Stack {
       handler: 'Handler',
       entry: `${__dirname}/../lambda/index.ts`,
       bundling: {
-        minify: true
+        minify: true,
+        nodeModules: [ 'aws-xray-sdk-core' ]
       },
       tracing: Tracing.ACTIVE,
       awsSdkConnectionReuse: true,

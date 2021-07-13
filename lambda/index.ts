@@ -1,5 +1,8 @@
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
-import DynamoDB from 'aws-sdk/clients/dynamodb';
+import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import DynamoDB = require('aws-sdk/clients/dynamodb');
+
+// import AWS XRay
+const AWSXRay = require('aws-xray-sdk-core');
 
 // Get DynamoDB table name and AWS region
 const TABLE_NAME = process.env.TABLE_NAME || '';
@@ -7,17 +10,18 @@ const AWS_REGION = process.env.AWS_REGION || '';
 
 // Connect to DynamoDB
 const ddb_client = new DynamoDB.DocumentClient({ region: AWS_REGION });
+AWSXRay.captureAWSClient((ddb_client as any).service);
 
 // Lambda handler
 export async function Handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
     
-    console.log(event);
+    console.log(event.requestContext);
 
     // Get timestamp and client IP
     const timest = Math.floor(Date.now() / 1000);
     const client_ip = event.requestContext.http.sourceIp;
     const api_path = event.requestContext.http.path;
-    
+
     // Build DynamoDB parameters
     const params = {
         TableName: TABLE_NAME,
@@ -30,9 +34,8 @@ export async function Handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     };
 
     // Insert item to DynamoDB
-    ddb_client.put(params).promise()
-        .then((data: { Attributes: any; }) => console.log(data.Attributes))
-        .catch(console.error);
+    const ddb_put = await ddb_client.put(params).promise();
+    console.log('wrote ddb record ' + timest.toString() + ' ' + ddb_put);
 
     // Return 200 OK to client
     return {
